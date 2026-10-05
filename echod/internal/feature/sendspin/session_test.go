@@ -1,6 +1,7 @@
 package sendspin
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -105,3 +106,29 @@ type fakeDecoder struct{}
 
 func (fakeDecoder) decode([]byte) ([]int16, error) { return nil, nil }
 func (fakeDecoder) close() error                   { return nil }
+
+// A player that lists the volume and mute commands says both in every client/state, the off and
+// zero values too. The library's PlayerState drops them: after a mute, an unmute and a volume
+// change, Music Assistant showed the device muted while it played, and aiosendspin called it
+// non-compliant.
+func TestStateSaysMutedAndVolumeEvenWhenOff(t *testing.T) {
+	b, err := json.Marshal(clientState{Player: playerState{State: "synchronized"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Player map[string]any `json:"player"`
+	}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatal(err)
+	}
+	if m, ok := got.Player["muted"]; !ok || m != false {
+		t.Errorf("muted = %v (present %v), want false: %s", m, ok, b)
+	}
+	if v, ok := got.Player["volume"]; !ok || v != float64(0) {
+		t.Errorf("volume = %v (present %v), want 0: %s", v, ok, b)
+	}
+	if got.Player["state"] != "synchronized" {
+		t.Errorf("state = %v: %s", got.Player["state"], b)
+	}
+}
