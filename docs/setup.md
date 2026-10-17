@@ -507,13 +507,15 @@ device's fonts folder over SSH ([Set the SSH authorized keys](actions.md#set-the
   times a second, which costs a little more than presence alone.
 
 - **Clap gesture** (every device, experimental, off by default; the **Clap gesture** switch in Home
-  Assistant): two sharp claps 0.15 to 0.7 seconds apart, then quiet, send Home Assistant an
-  `esphome.techo5_gesture` event with `gesture: double_clap` and the `device`, for an automation to
-  act on. One clap, applause, a knock at the door, a door, footsteps or somebody talking is not two
-  claps. It does not listen while the device plays music or a sound of its own, rings, or is in a
-  request or a call. Only the event leaves the device: one microphone is read on it, as the wake
-  word already reads them. Its thresholds are worked out on made-up sound and not yet on a room, so
-  how near and how loud a clap has to be may change.
+  Assistant): half a second of quiet, then two claps 0.15 to 0.7 seconds apart, then quiet, send
+  Home Assistant an `esphome.techo5_gesture` event with `gesture: double_clap` and the `device`, for
+  an automation to act on. Flat or cupped hands, soft or loud, from across the room all count, and a
+  car passing outside does not count as noise. One clap, applause, a knock at the door, a door,
+  footsteps or somebody talking is not two claps, and two claps in the middle of a sentence are not
+  heard: pause first. It does not listen while the device plays music or a sound of its own, rings,
+  or is in a request or a call. Only the event leaves the device: one microphone is read on it, as
+  the wake word already reads them. Its thresholds were measured in one living room, on an Echo Dot,
+  so another room may hear it a little differently.
 - **Hold on the clock** (Show, off by default; the **Hold on the clock** switch in Home Assistant):
   a finger held on the clock for half a second sends the same event with `gesture: hold`. Only on
   the clock itself, with nothing else on the screen (not over the screensaver, a card or the night
