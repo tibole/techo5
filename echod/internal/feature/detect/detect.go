@@ -137,9 +137,18 @@ func thresholdFor(slot int, base func(int) float64, stop float64, canceling bool
 // The command words (command.go) never get it. They are listened for only while the speaker plays, so
 // the allowance would be off their thresholds all the time, and they act at once with no turn after them
 // to show a mistake: the music they are said over is the one thing they must not take for the word.
-func slackFor(slot int, canceling, onCall, ringing bool) bool {
+//
+// Nor does the first wake word while Home Assistant confirms the wakes the device is unsure of
+// (confirming). Its threshold is then the line between a wake and a question: under it, a score over
+// the Confirm threshold is asked about. With the allowance, a score just under the threshold would wake
+// at once over music without being asked about: the one place the device is least sure of what it
+// heard would be the one place it does not ask. Without it, the same score is still heard, once Home
+// Assistant's engine has heard it too.
+func slackFor(slot int, canceling, onCall, ringing, confirming bool) bool {
 	switch {
 	case !canceling, isCommandSlot(slot):
+		return false
+	case confirming && slot == 0:
 		return false
 	case onCall && slot == HangupSlot:
 		return false
@@ -188,7 +197,10 @@ func newDetect() *Detect {
 		// A call still waiting to be dialed has no far end in the speaker, only "Calling Mom.", so the
 		// stop word keeps the slack it has over any announcement.
 		onCall := phone.Get().Busy() && !phone.Get().State().Waiting
-		slack := slackFor(slot, mic.Get().Canceling(), onCall, ring.IsSounding())
+		// Only while a wake it is unsure of would be asked about (OnCandidate): during a call or a talk
+		// through a camera nothing is sent, and the allowance stays.
+		confirming := config.Get().Wake.OnHA.Confirm && !phone.Get().Busy() && !talkback.Get().Busy()
+		slack := slackFor(slot, mic.Get().Canceling(), onCall, ring.IsSounding(), confirming)
 		return thresholdFor(slot, base, config.Get().Wake.Stop.Threshold, slack)
 	}
 

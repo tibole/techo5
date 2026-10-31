@@ -1256,7 +1256,8 @@ your own**, on a device with microphones.
   during a call, and the command words while music plays. For each it gives the model, its slot as the
   log numbers it (`slot=104`), its threshold, and what a score is judged against now. For the wake words
   and the stop word that is lower while the speaker plays and the echo canceller runs; the command words,
-  and the hang-up word on a call, never get that allowance.
+  the hang-up word on a call, and the first wake word with **Confirm wake with Home Assistant** on never
+  get that allowance.
 - **Last heard** lists the latest detections, near misses, wakes the device was unsure of (with
   **Confirm wake with Home Assistant** on: a score over its threshold but under the wake word's), and
   words that became ready or were taken out, each with the numbers its line in the log has.
@@ -1351,7 +1352,10 @@ Voice assistants). Home Assistant listens for one wake word per voice assistant.
   to three and a half seconds of audio: the two seconds before the wake, and up to one and a half after
   while Home Assistant listens. If its engine hears the wake word, the request goes on. If not, nothing
   happens: no chime and nothing on the screen. A wake over the Wake word threshold works as before and
-  sends nothing extra. On a Raspberry Pi 5 with openWakeWord, Home Assistant answered in about half a
+  sends nothing extra. While the speaker plays, the Wake word threshold stays where it is set, instead
+  of going 0.10 lower as it does for the other words: a wake just under it over music is asked about
+  rather than taken at once. During a call or a talk through a camera, when nothing is asked about, it
+  goes lower as before. On a Raspberry Pi 5 with openWakeWord, Home Assistant answered in about half a
   second, so a confirmed wake chimes about that much later. **Last wake score** shows a confirmed
   wake's score, which helps when setting the thresholds.
 

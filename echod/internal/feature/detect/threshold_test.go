@@ -42,14 +42,14 @@ func TestTheCommandWordsGetNoSlack(t *testing.T) {
 	for _, slot := range []int{CommandSlot, VolumeUpSlot, NextSongSlot} {
 		for _, canceling := range []bool{false, true} {
 			for _, onCall := range []bool{false, true} {
-				slack := slackFor(slot, canceling, onCall, false)
+				slack := slackFor(slot, canceling, onCall, false, false)
 				if got := thresholdFor(slot, base, 0.7, slack); got != 0.9 {
 					t.Errorf("slot %d canceling=%v onCall=%v: judged at %v, want its own 0.9", slot, canceling, onCall, got)
 				}
 			}
 		}
 	}
-	if got, want := thresholdFor(0, base, 0.7, slackFor(0, true, false, false)), base(0)-playingSlack; got != want {
+	if got, want := thresholdFor(0, base, 0.7, slackFor(0, true, false, false, false)), base(0)-playingSlack; got != want {
 		t.Errorf("the wake word is judged at %v, want %v with the slack", got, want)
 	}
 }
@@ -96,8 +96,32 @@ func TestNoSlackForEndingACall(t *testing.T) {
 		{"wake word, on a call", 0, true, true, false, true},
 		{"nothing playing", StopSlot, false, false, false, false},
 	} {
-		if got := slackFor(c.slot, c.canceling, c.onCall, c.ringing); got != c.wantSlack {
+		if got := slackFor(c.slot, c.canceling, c.onCall, c.ringing, false); got != c.wantSlack {
 			t.Errorf("%s: slack %v, want %v", c.name, got, c.wantSlack)
+		}
+	}
+}
+
+// While Home Assistant confirms unsure wakes, the first wake word keeps its threshold over music: a score
+// under it is asked about instead of waking at once. The other wake words, which are never asked about,
+// and the stop word keep the allowance, and nothing changes in a quiet room.
+func TestConfirmingKeepsTheFirstWakeWordsThreshold(t *testing.T) {
+	base := func(int) float64 { return 0.99 }
+	for _, c := range []struct {
+		name                  string
+		slot                  int
+		canceling, confirming bool
+		want                  float64
+	}{
+		{"first wake word, confirming, over music", 0, true, true, 0.99},
+		{"first wake word, not confirming, over music", 0, true, false, 0.99 - playingSlack},
+		{"first wake word, confirming, quiet", 0, false, true, 0.99},
+		{"second wake word, confirming, over music", 1, true, true, 0.99 - playingSlack},
+		{"stop word, confirming, over music", StopSlot, true, true, 0.7 - playingSlack},
+	} {
+		slack := slackFor(c.slot, c.canceling, false, false, c.confirming)
+		if got := thresholdFor(c.slot, base, 0.7, slack); got != c.want {
+			t.Errorf("%s: judged at %v, want %v", c.name, got, c.want)
 		}
 	}
 }
